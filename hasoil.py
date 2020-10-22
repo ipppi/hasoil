@@ -16,39 +16,25 @@
 
 """Simpleton's conflict checker"""
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __all__ = ['has_conflict']
 
-from collections import defaultdict
-from typing import Mapping, Sequence, Tuple
+from typing import Mapping, Sequence
 
-from packaging.specifiers import SpecifierSet
-
-
-def multimap(specs: Sequence[Tuple[str, str]]) -> Mapping[str, SpecifierSet]:
-    """Convert a sequence of pairs to a multimap of version specifiers.
-
-    >>> multimap([('x', '<420'), ('y', '>6'), ('y', '==9')])
-    {'x': <SpecifierSet('<420')>, 'y': <SpecifierSet('==9,>6')>}
-    """
-    result = defaultdict(list)
-    for name, version_spec in specs:
-        result[name].append(version_spec)
-    return {name: SpecifierSet(','.join(specifiers))
-            for name, specifiers in result.items()}
+from packaging.requirements import Requirement
 
 
 def has_conflict(versions: Mapping[str, str],
-                 specifiers: Sequence[Tuple[str, str]]) -> bool:
+                 requirements: Sequence[str]) -> bool:
     """Check if versions do not satisfy dependency specifications.
 
     >>> has_conflict({'x': '6.9', 'y': '4.20'},
-    ...              [('x', '>6'), ('x', '<9'), ('y', '==4.20')])
+    ...              ['x>6', 'x<9', 'y==4.20'])
     False
     >>> has_conflict({'x': '6.9', 'y': '4.2'},
-    ...              [('x', '>6'), ('x', '<9'), ('y', '==4.20')])
+    ...              ['x>6', 'x<9', 'y==4.20'])
     True
     """
-    for name, specs in multimap(specifiers).items():
-        if versions[name] not in specs: return True
+    for req in map(Requirement, requirements):
+        if versions[req.name] not in req.specifier: return True
     return False
